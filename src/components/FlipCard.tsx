@@ -25,7 +25,7 @@ export default function FlipCard({
   genreIcon,
 
 }: Props) {
-  const [flipped, setFlipped] = useState(false);
+//  const [flipped, setFlipped] = useState(false);
 
   return (
     <div
