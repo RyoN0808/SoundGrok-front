@@ -26,6 +26,8 @@ export default function MyPage() {
   const [selected, setSelected] = useState<null | number>(null);
   const [page, setPage] = useState(0);
   const [sortBy, setSortBy] = useState<"default" | "score" | "playCount">("default");
+  const [artistSortKey, setArtistSortKey] = useState<"created" | "name" | "score">("created");
+  const [artistSortOrder, setArtistSortOrder] = useState<"asc" | "desc">("desc");
 
   const pageSize = 4;
 
@@ -38,7 +40,7 @@ export default function MyPage() {
 
       return {
         songName: `Song ${i + 1}`,
-        artistName: `Artist ${i + 1}`,
+        artistName: `Artist ${i % 5 + 1}`,
         averageScore: 75 + Math.random() * 25,
         playCount: Math.floor(Math.random() * 10) + 1,
         genre: ["POP", "ROCK", "アニメ"][i % 3],
@@ -59,6 +61,38 @@ export default function MyPage() {
   const totalPages = Math.ceil(sortedSongs.length / pageSize);
   const pagedSongs = sortedSongs.slice(page * pageSize, (page + 1) * pageSize);
 
+  const artistSummary = songs.reduce((acc, song) => {
+    const existing = acc.find((a) => a.artistName === song.artistName);
+    if (existing) {
+      existing.totalScore += song.averageScore;
+      existing.songCount += 1;
+    } else {
+      acc.push({
+        artistName: song.artistName,
+        totalScore: song.averageScore,
+        songCount: 1,
+      });
+    }
+    return acc;
+  }, [] as { artistName: string; totalScore: number; songCount: number }[]);
+
+  const artistAverages = artistSummary.map((a) => ({
+    artistName: a.artistName,
+    averageScore: a.totalScore / a.songCount,
+    songCount: a.songCount,
+  }));
+
+  const sortedArtistAverages = [...artistAverages].sort((a, b) => {
+    const factor = artistSortOrder === "asc" ? 1 : -1;
+    if (artistSortKey === "name") {
+      return factor * a.artistName.localeCompare(b.artistName);
+    } else if (artistSortKey === "score") {
+      return factor * (a.averageScore - b.averageScore);
+    } else {
+      return factor * (songs.findIndex(s => s.artistName === a.artistName) - songs.findIndex(s => s.artistName === b.artistName));
+    }
+  }).slice(0, 4);
+
   return (
     <main className="min-h-screen relative text-white px-4 py-10 bg-gradient-to-br from-black via-neutral-900 to-black overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-900/10 via-black/60 to-black opacity-30 blur-2xl pointer-events-none z-0" />
@@ -68,7 +102,35 @@ export default function MyPage() {
       </h1>
 
       <div className="relative z-10 flex justify-center mb-6">
-        <ScoreCircle averageScore={100} />
+        <ScoreCircle averageScore={84} />
+      </div>
+
+      <div className="relative z-10 mb-10">
+        <h2 className="text-xl font-bold text-yellow-300 mb-4">歌手別 平均スコア</h2>
+
+        <div className="flex justify-center gap-2 mb-4 text-sm">
+          <button onClick={() => setArtistSortKey("created")} className={`px-3 py-1 rounded ${artistSortKey === "created" ? "bg-yellow-600/40" : "bg-white/10 hover:bg-white/20"}`}>登録順</button>
+          <button onClick={() => setArtistSortKey("name")} className={`px-3 py-1 rounded ${artistSortKey === "name" ? "bg-yellow-600/40" : "bg-white/10 hover:bg-white/20"}`}>名前順</button>
+          <button onClick={() => setArtistSortKey("score")} className={`px-3 py-1 rounded ${artistSortKey === "score" ? "bg-yellow-600/40" : "bg-white/10 hover:bg-white/20"}`}>スコア順</button>
+          <button onClick={() => setArtistSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20">
+            {artistSortOrder === "asc" ? "昇順" : "降順"}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 justify-items-center">
+          {sortedArtistAverages.map((artist, idx) => (
+            <SongCard
+              key={idx}
+              songName={"平均"}
+              artistName={artist.artistName}
+              averageScore={artist.averageScore}
+              playCount={artist.songCount}
+              genre={"平均"}
+              genreIcon={"🎤"}
+              lastScores={[]}
+            />
+          ))}
+        </div>
       </div>
 
       <div className="relative z-10 flex justify-center gap-4 mb-8 text-sm">
