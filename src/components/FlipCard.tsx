@@ -13,7 +13,6 @@ type Props = {
   playCount: number;
   genre: string;
   genreIcon: string;
-  scoreHistory: number[];
 };
 
 export default function FlipCard({
@@ -24,7 +23,7 @@ export default function FlipCard({
   playCount,
   genre,
   genreIcon,
-  scoreHistory,
+
 }: Props) {
   const [flipped, setFlipped] = useState(false);
 

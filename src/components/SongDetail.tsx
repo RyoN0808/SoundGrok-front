@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +60,16 @@ export default function SongDetail({
 
   const graphData = sortedScores.slice(0, 5).reverse();
 
+  const handlePrevClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setHistoryPage((prev) => Math.max(prev - 1, 0));
+  };
+
+  const handleNextClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setHistoryPage((prev) => prev + 1);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-md sm:max-w-xl max-h-screen overflow-y-auto rounded-xl bg-gradient-to-br from-neutral-900 to-black border border-neutral-700">
@@ -86,7 +96,10 @@ export default function SongDetail({
           </p>
           <p>歌唱回数: ×{playCount}</p>
           <p>
-            最高スコア: <span className="font-bold text-xl sm:text-2xl text-yellow-300">{highestScore?.toFixed(3) ?? "―"}</span>
+            最高スコア:{" "}
+            <span className="font-bold text-xl sm:text-2xl text-yellow-300">
+              {highestScore?.toFixed(3) ?? "―"}
+            </span>
           </p>
         </div>
 
@@ -125,14 +138,14 @@ export default function SongDetail({
           <div className="flex justify-center gap-4 mt-4">
             <button
               disabled={!hasPrev}
-              onClick={() => setHistoryPage((prev) => Math.max(prev - 1, 0))}
+              onClick={handlePrevClick}
               className="px-3 py-1 text-xs text-white rounded bg-white/10 hover:bg-white/20 disabled:opacity-30"
             >
               前へ
             </button>
             <button
               disabled={!hasNext}
-              onClick={() => setHistoryPage((prev) => prev + 1)}
+              onClick={handleNextClick}
               className="px-3 py-1 text-xs text-white rounded bg-white/10 hover:bg-white/20 disabled:opacity-30"
             >
               次へ
