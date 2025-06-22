@@ -23,6 +23,12 @@ interface SongData {
   lastScores: ScoreEntry[];
 }
 
+interface ArtistData {
+  artistName: string;
+  averageScore: number;
+  songCount: number;
+}
+
 export default function MyPage() {
   const [songs, setSongs] = useState<SongData[]>([]);
   const [selected, setSelected] = useState<null | number>(null);
@@ -94,6 +100,8 @@ export default function MyPage() {
   const totalPagesArtist = Math.ceil(sortedArtistAverages.length / pageSize);
   const pagedArtists = sortedArtistAverages.slice(page * pageSize, (page + 1) * pageSize);
 
+  const displayedData = mode === "song" ? pagedSongs : pagedArtists;
+
   return (
     <main className="min-h-screen relative text-white px-4 py-10 bg-black overflow-hidden">
       {/* 背景 */}
@@ -149,7 +157,7 @@ export default function MyPage() {
         transition={{ duration: 0.4 }}
         className="relative z-10 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 justify-items-center"
       >
-        {(mode === "song" ? pagedSongs : pagedArtists).map((data, idx) => (
+        {displayedData.map((data, idx) => (
           <div
             key={idx}
             onClick={() =>
@@ -159,12 +167,12 @@ export default function MyPage() {
             }
           >
             {mode === "song" ? (
-              <SongCard {...data} />
+              <SongCard {...(data as SongData)} />
             ) : (
               <ArtistCard
-                artistName={data.artistName}
-                averageScore={data.averageScore}
-                songCount={data.songCount}
+                artistName={(data as ArtistData).artistName}
+                averageScore={(data as ArtistData).averageScore}
+                songCount={(data as ArtistData).songCount}
               />
             )}
           </div>
