@@ -23,9 +23,8 @@ export default function FlipCard({
   playCount,
   genre,
   genreIcon,
-
 }: Props) {
-//  const [flipped, setFlipped] = useState(false);
+  const [flipped, setFlipped] = useState(false); // ←これ！
 
   return (
     <div
@@ -51,11 +50,7 @@ export default function FlipCard({
 
         {/* 裏 */}
         <div className="absolute w-full h-full rotate-y-180 backface-hidden">
-          <SongBack
-            highestScore={highestScore}
-           
-            playCount={playCount}
-          />
+          <SongBack highestScore={highestScore} playCount={playCount} />
         </div>
       </motion.div>
     </div>
