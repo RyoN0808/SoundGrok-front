@@ -9,12 +9,21 @@ export default function LineCallbackContent() {
 
   useEffect(() => {
     const code = searchParams.get("code");
+    const receivedState = searchParams.get("state");
+    const storedState = sessionStorage.getItem("line_login_state");
 
+    // バリデーション
     if (!code) {
       console.error("認可コードが見つかりませんでした");
       return;
     }
 
+    if (!receivedState || !storedState || receivedState !== storedState) {
+      console.error("❌ stateパラメータの検証に失敗しました");
+      return;
+    }
+
+    // 二重使用チェック
     const usedCode = sessionStorage.getItem("used_line_code");
     if (usedCode === code) {
       console.warn("この認可コードはすでに使用済みです。処理をスキップします。");

@@ -1,122 +1,37 @@
+// src/app/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import SongCard from "@/components/SongCard";
-import ScoreCircle from "@/components/ScoreCircle";
-import SongDetail from "@/components/SongDetail";
-import { motion } from "framer-motion";
-
-interface ScoreEntry {
-  date: string;
-  score: number;
-}
-
-interface SongData {
-  songName: string;
-  artistName: string;
-  averageScore: number;
-  playCount: number;
-  genre: string;
-  genreIcon: string;
-  lastScores: ScoreEntry[];
-}
-
-export default function MyPage() {
-  const [songs, setSongs] = useState<SongData[]>([]);
-  const [selected, setSelected] = useState<null | number>(null);
-  const [page, setPage] = useState(0);
-  const [sortBy, setSortBy] = useState<"default" | "score" | "playCount">("default");
-
-  const pageSize = 4;
-
-  useEffect(() => {
-    const dummySongs = [...Array(23)].map((_, i) => {
-      const lastScores = [...Array(Math.floor(Math.random() * 15) + 5)].map((_, j) => ({
-        date: `2025-05-${String(j + 1).padStart(2, "0")}`,
-        score: 70 + Math.random() * 30,
-      })).sort((a, b) => b.date.localeCompare(a.date));
-
-      return {
-        songName: `Song ${i + 1}`,
-        artistName: `Artist ${i + 1}`,
-        averageScore: 75 + Math.random() * 25,
-        playCount: Math.floor(Math.random() * 10) + 1,
-        genre: ["POP", "ROCK", "アニメ"][i % 3],
-        genreIcon: ["🎵", "🎸", "📺"][i % 3],
-        lastScores,
-      };
-    });
-
-    setSongs(dummySongs);
-  }, []);
-
-  const sortedSongs = [...songs].sort((a, b) => {
-    if (sortBy === "score") return b.averageScore - a.averageScore;
-    if (sortBy === "playCount") return b.playCount - a.playCount;
-    return 0;
-  });
-
-  const totalPages = Math.ceil(sortedSongs.length / pageSize);
-  const pagedSongs = sortedSongs.slice(page * pageSize, (page + 1) * pageSize);
-
+export default function LandingPage() {
   return (
-    <main className="min-h-screen relative text-white px-4 py-10 bg-gradient-to-br from-black via-neutral-900 to-black overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-900/10 via-black/60 to-black opacity-30 blur-2xl pointer-events-none z-0" />
-
-      <h1 className="relative z-10 text-center text-4xl font-extrabold tracking-wider bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(255,255,255,0.3)] mb-8">
-        SCOREs
+    <main className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-neutral-800 text-white flex flex-col items-center justify-center px-4 py-10">
+      <h1 className="text-4xl sm:text-5xl font-bold mb-6 text-center">
+        カラオケスコア管理Bot🎤
       </h1>
+      <p className="text-lg sm:text-xl mb-8 text-center max-w-xl">
+        あなたのカラオケスコアをLINEで記録・管理！  
+        友だち登録して、最高のスコアを残そう！
+      </p>
 
-      <div className="relative z-10 flex justify-center mb-6">
-        <ScoreCircle averageScore={100} />
-      </div>
-
-      <div className="relative z-10 flex justify-center gap-4 mb-8 text-sm">
-        <button onClick={() => setSortBy("default")} className={`px-3 py-1 rounded ${sortBy === "default" ? "bg-yellow-600/40" : "bg-white/10 hover:bg-white/20"}`}>新着</button>
-        <button onClick={() => setSortBy("score")} className={`px-3 py-1 rounded ${sortBy === "score" ? "bg-yellow-600/40" : "bg-white/10 hover:bg-white/20"}`}>スコア</button>
-        <button onClick={() => setSortBy("playCount")} className={`px-3 py-1 rounded ${sortBy === "playCount" ? "bg-yellow-600/40" : "bg-white/10 hover:bg-white/20"}`}>歌唱回数</button>
-      </div>
-
-      <motion.div
-        key={page + sortBy}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.4 }}
-        className="relative z-10 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 justify-items-center"
+      {/* LINE友だち追加ボタン（公式バナー） */}
+      <a
+        href="https://line.me/R/ti/p/あなたのLINEアカウントID" // ←ここ変更
+        target="_blank"
+        rel="noopener noreferrer"
       >
-        {pagedSongs.map((song, idx) => (
-          <div key={idx} onClick={() => setSelected(page * pageSize + idx)}>
-            <SongCard {...song} />
-          </div>
-        ))}
-      </motion.div>
-
-      <div className="relative z-10 flex justify-center mt-8 gap-4">
-        <button
-          disabled={page === 0}
-          className="px-4 py-1 text-white rounded bg-white/10 hover:bg-white/20 disabled:opacity-30"
-          onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
-        >
-          前へ
-        </button>
-        <button
-          disabled={page + 1 >= totalPages}
-          className="px-4 py-1 text-white rounded bg-white/10 hover:bg-white/20 disabled:opacity-30"
-          onClick={() => setPage((prev) => Math.min(prev + 1, totalPages - 1))}
-        >
-          次へ
-        </button>
-      </div>
-
-      {selected !== null && (
-        <SongDetail
-          isOpen={true}
-          onClose={() => setSelected(null)}
-          highestScore={Math.max(...songs[selected].lastScores.map((e) => e.score))}
-          {...songs[selected]}
+        <img
+          src="https://scdn.line-apps.com/n/line_add_friends/btn/ja.png"
+          alt="友だち追加"
+          className="w-48 hover:scale-105 transition-transform duration-300"
         />
-      )}
+      </a>
+
+      {/* 任意でLINEログイン導線も */}
+      <a
+        href="/login/line"
+        className="mt-6 text-blue-400 underline hover:text-blue-300"
+      >
+        LINEログインはこちら →
+      </a>
     </main>
   );
 }
