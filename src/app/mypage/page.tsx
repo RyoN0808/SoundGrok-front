@@ -1,110 +1,167 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import SongCard from "@/components/SongCard";
-import ArtistCard from "@/components/ArtistCard";
-import ScoreCircle from "@/components/ScoreCircle";
-import SongDetail from "@/components/SongDetail";
-import ArtistDetail from "@/components/ArtistDetail";
-import { motion } from "framer-motion";
+import { useEffect, useState } from 'react'
+import { supabase } from '@/app/lib/supabase'
+import SongCard from '@/components/SongCard'
+import ArtistCard from '@/components/ArtistCard'
+import SongDetail from '@/components/SongDetail'
+import ArtistDetail from '@/components/ArtistDetail'
+import ScoreCircle from '@/components/ScoreCircle'
+import { motion } from 'framer-motion'
 
 interface ScoreEntry {
-  date: string;
-  score: number;
+  date: string
+  score: number
 }
 
 interface SongData {
-  songName: string;
-  artistName: string;
-  averageScore: number;
-  playCount: number;
-  genre: string;
-  genreIcon: string;
-  lastScores: ScoreEntry[];
+  songName: string
+  artistName: string
+  averageScore: number
+  playCount: number
+  genre: string
+  genreIcon: string
+  lastScores: ScoreEntry[]
 }
 
 interface ArtistData {
-  artistName: string;
-  averageScore: number;
-  songCount: number;
+  artistName: string
+  averageScore: number
+  songCount: number
+}
+
+interface SupabaseUser {
+  id: string
+  average_score: number
 }
 
 export default function MyPage() {
-  const [songs, setSongs] = useState<SongData[]>([]);
-  const [selected, setSelected] = useState<null | number>(null);
-  const [artistSelected, setArtistSelected] = useState<null | number>(null);
-  const [page, setPage] = useState(0);
-  const [sortBy, setSortBy] = useState<"default" | "score" | "playCount" | "name">("default");
-  const [mode, setMode] = useState<"song" | "artist">("song");
-
-  const pageSize = 4;
+  const [sub, setSub] = useState<string | null>(null)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [songs, setSongs] = useState<SongData[]>([])
+  const [selected, setSelected] = useState<number | null>(null)
+  const [artistSelected, setArtistSelected] = useState<number | null>(null)
+  const [page, setPage] = useState(0)
+  const [sortBy, setSortBy] = useState<'default' | 'score' | 'playCount' | 'name'>('default')
+  const [mode, setMode] = useState<'song' | 'artist'>('song')
+  const pageSize = 4
 
   useEffect(() => {
-    const dummySongs = [...Array(23)].map((_, i) => {
-      const lastScores = [...Array(Math.floor(Math.random() * 15) + 5)].map((_, j) => ({
-        date: `2025-05-${String(j + 1).padStart(2, "0")}`,
-        score: 70 + Math.random() * 30,
-      })).sort((a, b) => b.date.localeCompare(a.date));
+    const storedSub = localStorage.getItem('line_sub')
+    setSub(storedSub)
+  }, [])
 
-      return {
-        songName: `Song ${i + 1}`,
-        artistName: `Artist ${i % 5 + 1}`,
-        averageScore: 75 + Math.random() * 25,
-        playCount: Math.floor(Math.random() * 10) + 1,
-        genre: ["POP", "ROCK", "アニメ"][i % 3],
-        genreIcon: ["🎵", "🎸", "📺"][i % 3],
-        lastScores,
-      };
-    });
+  useEffect(() => {
+    if (!sub) return
 
-    setSongs(dummySongs);
-  }, []);
+    const fetchUser = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, average_score')
+        .eq('id', sub)
+        .maybeSingle()
+
+      if (error) {
+        console.error('ユーザー取得エラー', error)
+        return
+      }
+
+      if (data) setUser(data)
+    }
+
+    fetchUser()
+  }, [sub])
+
+  useEffect(() => {
+    if (!user) return
+
+    const fetchScores = async () => {
+      const { data, error } = await supabase
+        .from('scores')
+        .select('*')
+        .eq('user_id', user.id)
+
+      if (error) {
+        console.error('スコア取得エラー', error)
+        return
+      }
+
+      if (!data) return
+
+      const grouped = data.reduce((acc: Record<string, ScoreEntry[]>, curr) => {
+        const key = `${curr.song_name}|${curr.artist_name}`
+        if (!acc[key]) acc[key] = []
+        acc[key].push({ score: curr.score, date: curr.created_at })
+        return acc
+      }, {})
+
+      const processedSongs: SongData[] = Object.entries(grouped).map(([key, scores]) => {
+        const [songName, artistName] = key.split('|')
+        const averageScore = scores.reduce((sum, s) => sum + s.score, 0) / scores.length
+        const lastScores = [...scores].sort((a, b) => b.date.localeCompare(a.date))
+
+        return {
+          songName,
+          artistName,
+          averageScore,
+          playCount: scores.length,
+          genre: '未分類',
+          genreIcon: '🎵',
+          lastScores,
+        }
+      })
+
+      setSongs(processedSongs)
+    }
+
+    fetchScores()
+  }, [user])
+
+  if (!user) return <div className="p-4 text-white">ユーザー情報が見つかりません</div>
 
   const sortedSongs = [...songs].sort((a, b) => {
-    if (sortBy === "score") return b.averageScore - a.averageScore;
-    if (sortBy === "playCount") return b.playCount - a.playCount;
-    return 0;
-  });
+    if (sortBy === 'score') return b.averageScore - a.averageScore
+    if (sortBy === 'playCount') return b.playCount - a.playCount
+    return 0
+  })
 
-  const totalPagesSong = Math.ceil(sortedSongs.length / pageSize);
-  const pagedSongs = sortedSongs.slice(page * pageSize, (page + 1) * pageSize);
+  const totalPagesSong = Math.ceil(sortedSongs.length / pageSize)
+  const pagedSongs = sortedSongs.slice(page * pageSize, (page + 1) * pageSize)
 
   const artistSummary = songs.reduce((acc, song) => {
-    const existing = acc.find((a) => a.artistName === song.artistName);
-    if (existing) {
-      existing.totalScore += song.averageScore;
-      existing.songCount += 1;
+    const found = acc.find((a) => a.artistName === song.artistName)
+    if (found) {
+      found.totalScore += song.averageScore
+      found.songCount += 1
     } else {
       acc.push({
         artistName: song.artistName,
         totalScore: song.averageScore,
         songCount: 1,
-      });
+      })
     }
-    return acc;
-  }, [] as { artistName: string; totalScore: number; songCount: number }[]);
+    return acc
+  }, [] as { artistName: string; totalScore: number; songCount: number }[])
 
-  const artistAverages = artistSummary.map((a) => ({
+  const artistAverages: ArtistData[] = artistSummary.map((a) => ({
     artistName: a.artistName,
     averageScore: a.totalScore / a.songCount,
     songCount: a.songCount,
-  }));
+  }))
 
-  const sortedArtistAverages = [...artistAverages].sort((a, b) => {
-    if (sortBy === "name") return a.artistName.localeCompare(b.artistName);
-    if (sortBy === "score") return b.averageScore - a.averageScore;
-    if (sortBy === "playCount") return b.songCount - a.songCount;
-    return 0;
-  });
+  const sortedArtists = [...artistAverages].sort((a, b) => {
+    if (sortBy === 'score') return b.averageScore - a.averageScore
+    if (sortBy === 'playCount') return b.songCount - a.songCount
+    if (sortBy === 'name') return a.artistName.localeCompare(b.artistName)
+    return 0
+  })
 
-  const totalPagesArtist = Math.ceil(sortedArtistAverages.length / pageSize);
-  const pagedArtists = sortedArtistAverages.slice(page * pageSize, (page + 1) * pageSize);
-
-  const displayedData = mode === "song" ? pagedSongs : pagedArtists;
+  const totalPagesArtist = Math.ceil(sortedArtists.length / pageSize)
+  const pagedArtists = sortedArtists.slice(page * pageSize, (page + 1) * pageSize)
+  const displayedData = mode === 'song' ? pagedSongs : pagedArtists
 
   return (
     <main className="min-h-screen relative text-white px-4 py-10 bg-black overflow-hidden">
-      {/* 背景 */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-yellow-500/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-yellow-400/10 rounded-full blur-2xl animate-ping delay-500" />
@@ -116,39 +173,36 @@ export default function MyPage() {
       </h1>
 
       <div className="relative z-10 flex justify-center mb-6">
-        <ScoreCircle averageScore={84} />
+        <ScoreCircle averageScore={user.average_score ?? 0} />
       </div>
 
-      {/* モード切替 */}
       <div className="relative z-10 flex justify-center mb-4 gap-4">
-        {(["song", "artist"] as const).map((m) => (
+        {(['song', 'artist'] as const).map((m) => (
           <button
             key={m}
             onClick={() => {
-              setMode(m);
-              setPage(0); // ページリセット
+              setMode(m)
+              setPage(0)
             }}
-            className={`px-4 py-1 rounded ${mode === m ? "bg-yellow-600/40" : "bg-white/10 hover:bg-white/20"}`}
+            className={`px-4 py-1 rounded ${mode === m ? 'bg-yellow-600/40' : 'bg-white/10 hover:bg-white/20'}`}
           >
-            {m === "song" ? "曲" : "歌手"}
+            {m === 'song' ? '曲' : '歌手'}
           </button>
         ))}
       </div>
 
-      {/* ソート切替 */}
       <div className="relative z-10 flex justify-center mb-6 gap-4">
-        {(["default", "score", "playCount", "name"] as const).map((s) => (
+        {(['default', 'score', 'playCount', 'name'] as const).map((s) => (
           <button
             key={s}
             onClick={() => setSortBy(s)}
-            className={`px-3 py-1 rounded ${sortBy === s ? "bg-yellow-600/40" : "bg-white/10 hover:bg-white/20"}`}
+            className={`px-3 py-1 rounded ${sortBy === s ? 'bg-yellow-600/40' : 'bg-white/10 hover:bg-white/20'}`}
           >
-            {s === "default" ? "新着" : s === "score" ? "スコア" : s === "playCount" ? "歌唱回数" : "名前"}
+            {s === 'default' ? '新着' : s === 'score' ? 'スコア' : s === 'playCount' ? '歌唱回数' : '名前'}
           </button>
         ))}
       </div>
 
-      {/* 表示 */}
       <motion.div
         key={page + sortBy + mode}
         initial={{ opacity: 0, y: 20 }}
@@ -161,12 +215,10 @@ export default function MyPage() {
           <div
             key={idx}
             onClick={() =>
-              mode === "song"
-                ? setSelected(page * pageSize + idx)
-                : setArtistSelected(page * pageSize + idx)
+              mode === 'song' ? setSelected(page * pageSize + idx) : setArtistSelected(page * pageSize + idx)
             }
           >
-            {mode === "song" ? (
+            {mode === 'song' ? (
               <SongCard {...(data as SongData)} />
             ) : (
               <ArtistCard
@@ -179,46 +231,26 @@ export default function MyPage() {
         ))}
       </motion.div>
 
-      {/* ページネーション */}
-      {mode === "song" && (
-        <div className="relative z-10 flex justify-center mt-8 gap-4">
-          <button
-            disabled={page === 0}
-            className="px-4 py-1 text-white rounded bg-white/10 hover:bg-white/20 disabled:opacity-30"
-            onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
-          >
-            前へ
-          </button>
-          <button
-            disabled={page + 1 >= totalPagesSong}
-            className="px-4 py-1 text-white rounded bg-white/10 hover:bg-white/20 disabled:opacity-30"
-            onClick={() => setPage((prev) => Math.min(prev + 1, totalPagesSong - 1))}
-          >
-            次へ
-          </button>
-        </div>
-      )}
+      <div className="relative z-10 flex justify-center mt-8 gap-4">
+        <button
+          disabled={page === 0}
+          className="px-4 py-1 text-white rounded bg-white/10 hover:bg-white/20 disabled:opacity-30"
+          onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+        >
+          前へ
+        </button>
+        <button
+          disabled={
+            (mode === 'song' && page + 1 >= totalPagesSong) ||
+            (mode === 'artist' && page + 1 >= totalPagesArtist)
+          }
+          className="px-4 py-1 text-white rounded bg-white/10 hover:bg-white/20 disabled:opacity-30"
+          onClick={() => setPage((prev) => prev + 1)}
+        >
+          次へ
+        </button>
+      </div>
 
-      {mode === "artist" && (
-        <div className="relative z-10 flex justify-center mt-8 gap-4">
-          <button
-            disabled={page === 0}
-            className="px-4 py-1 text-white rounded bg-white/10 hover:bg-white/20 disabled:opacity-30"
-            onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
-          >
-            前へ
-          </button>
-          <button
-            disabled={page + 1 >= totalPagesArtist}
-            className="px-4 py-1 text-white rounded bg-white/10 hover:bg-white/20 disabled:opacity-30"
-            onClick={() => setPage((prev) => Math.min(prev + 1, totalPagesArtist - 1))}
-          >
-            次へ
-          </button>
-        </div>
-      )}
-
-      {/* モーダル */}
       {selected !== null && (
         <SongDetail
           isOpen={true}
@@ -232,10 +264,10 @@ export default function MyPage() {
         <ArtistDetail
           isOpen={true}
           onClose={() => setArtistSelected(null)}
-          {...sortedArtistAverages[artistSelected]}
-          songs={songs} 
+          {...sortedArtists[artistSelected]}
+          songs={songs}
         />
       )}
     </main>
-  );
+  )
 }
