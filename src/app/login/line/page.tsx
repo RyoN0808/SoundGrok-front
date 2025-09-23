@@ -1,20 +1,15 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
+import { useEffect } from "react";
+import { API_BASE } from "@/lib/api-client";
 
 export default function LineLogin() {
   useEffect(() => {
-    const clientId = process.env.NEXT_PUBLIC_LINE_CLIENT_ID
-    const redirectUri = encodeURIComponent(process.env.NEXT_PUBLIC_LINE_CALLBACK_URL || '')
+    // ここでLINEのauthorize URLは作らない！
+    // サーバに任せる（next はログイン後に戻したいパス）
+    const next = "/mypage";
+    window.location.href = `${API_BASE}/auth/login?next=${encodeURIComponent(next)}`;
+  }, []);
 
-    // ✅ セキュアなランダム state を生成
-    const state = crypto.randomUUID()
-    sessionStorage.setItem('line_login_state', state)
-
-    const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}&scope=profile%20openid`
-
-    window.location.href = lineAuthUrl
-  }, [])
-
-  return <p>Redirecting to LINE...</p>
+  return <p>LINEログインにリダイレクト中...</p>;
 }

@@ -8,6 +8,7 @@ import SongDetail from '@/components/SongDetail'
 import ArtistDetail from '@/components/ArtistDetail'
 import ScoreCircle from '@/components/ScoreCircle'
 import { motion } from 'framer-motion'
+import { requireAuth, logout } from '@/lib/auth'   // ★ 修正済み
 
 interface ScoreEntry {
   date: string
@@ -36,7 +37,7 @@ interface SupabaseUser {
 }
 
 export default function MyPage() {
-  const [sub, setSub] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [songs, setSongs] = useState<SongData[]>([])
   const [selected, setSelected] = useState<number | null>(null)
@@ -46,19 +47,27 @@ export default function MyPage() {
   const [mode, setMode] = useState<'song' | 'artist'>('song')
   const pageSize = 4
 
+  // ログイン確認
   useEffect(() => {
-    const storedSub = localStorage.getItem('line_sub')
-    setSub(storedSub)
+    (async () => {
+      try {
+        const uid = await requireAuth()   // 未ログインなら /auth/login にリダイレクト
+        setUserId(uid)
+      } catch {
+        // redirectToLogin 内で飛ばされるのでここでは何もしない
+      }
+    })()
   }, [])
 
+  // ユーザー情報取得
   useEffect(() => {
-    if (!sub) return
+    if (!userId) return
 
     const fetchUser = async () => {
       const { data, error } = await supabase
         .from('users')
         .select('id, average_score')
-        .eq('id', sub)
+        .eq('id', userId)
         .maybeSingle()
 
       if (error) {
@@ -70,8 +79,9 @@ export default function MyPage() {
     }
 
     fetchUser()
-  }, [sub])
+  }, [userId])
 
+  // スコア取得
   useEffect(() => {
     if (!user) return
 
@@ -171,6 +181,19 @@ export default function MyPage() {
       <h1 className="relative z-10 text-center text-4xl font-extrabold tracking-wider bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(255,255,255,0.3)] mb-8">
         SCOREs
       </h1>
+
+      {/* ログアウトボタン */}
+      <div className="relative z-10 flex justify-center mb-6">
+        <button
+          onClick={async () => {
+            const ok = await logout()
+            if (ok) window.location.href = "/login"
+          }}
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          ログアウト
+        </button>
+      </div>
 
       <div className="relative z-10 flex justify-center mb-6">
         <ScoreCircle averageScore={user.average_score ?? 0} />

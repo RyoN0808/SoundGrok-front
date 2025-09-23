@@ -1,18 +1,15 @@
 "use client";
 
-import { Suspense } from "react";
-import LineCallbackContent from "./LineCallbackContent";
+import { useEffect } from "react";
+import { API_BASE } from "@/lib/api-client";
 
-export default function LineCallbackPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-screen text-white">
-          <p>ログイン処理中...</p>
-        </div>
-      }
-    >
-      <LineCallbackContent />
-    </Suspense>
-  );
+export default function LineLogin() {
+  useEffect(() => {
+    // ここでLINEのauthorize URLは作らない！
+    // サーバに任せる（next はログイン後に戻したいパス）
+    const next = "/mypage";
+    window.location.href = `${API_BASE}/auth/login?next=${encodeURIComponent(next)}`;
+  }, []);
+
+  return <p>LINEログインにリダイレクト中...</p>;
 }
