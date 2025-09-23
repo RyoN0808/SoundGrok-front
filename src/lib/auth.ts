@@ -1,7 +1,5 @@
 "use client";
 
-import { API_BASE, apiFetch, apiGetJSON } from "./api-client";
-
 export type Me = { authenticated: boolean; user_id?: string };
 
 /** /auth/me で認証状態を取得 */
@@ -14,14 +12,22 @@ export async function getMe(): Promise<Me> {
 }
 
 /** 未ログインならサーバーの /auth/login に飛ばす */
+// import { API_BASE, apiFetch, apiGetJSON } from "./api-client";
+import { apiFetch, apiGetJSON } from "./api-client";
+
+// ...
+
 export function redirectToLogin(next?: string) {
   const n =
     next ??
     (typeof window !== "undefined"
       ? window.location.pathname + window.location.search
       : "/");
-  window.location.href = `${API_BASE}/auth/login?next=${encodeURIComponent(n)}`;
+
+  // ここは固定で /api を叩く（Vercel の rewrites が Render に中継）
+  window.location.href = `/api/auth/login?next=${encodeURIComponent(n)}`;
 }
+
 
 /** 強制的にログイン確認して user_id を返す（未ログインは即リダイレクト） */
 export async function requireAuth(): Promise<string> {
