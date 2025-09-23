@@ -1,28 +1,20 @@
 "use client";
 
-/**
- * バックエンドのベースURL
- * 例: NEXT_PUBLIC_API_URL=https://karaoke-linebot.onrender.com
- */
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "https://karaoke-linebot.onrender.com";
+/** すべて相対で叩く。/api/* は next.config の rewrites でバックに中継 */
+const API_PREFIX = "/api";
 
 /** Cookieから値を取り出す（ブラウザ専用） */
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
-  // name を正規表現用にエスケープしてから検索
   const esc = name.replace(/([.*+?^${}()|[\]\\])/g, "\\$1");
   const m = document.cookie.match(new RegExp(`(?:^|; )${esc}=([^;]*)`));
   return m ? decodeURIComponent(m[1]) : null;
 }
 
-/** 相対パスなら API_BASE を付与、絶対URLならそのまま */
+/** 相対パスを /api に付ける。絶対URLならそのまま */
 function resolveUrl(input: string) {
-  if (/^https?:\/\//i.test(input)) return input;
-  // API_BASE の末尾/ と input の先頭/ が二重にならないよう調整
-  const base = API_BASE.replace(/\/+$/, "");
-  const path = input.startsWith("/") ? input : `/${input}`;
-  return `${base}${path}`;
+  if (/^https?:\/\//i.test(input)) return input;         // 例外的に絶対URLが来たら通す
+  return input.startsWith("/api/") ? input : `${API_PREFIX}${input.startsWith("/") ? "" : "/"}${input}`;
 }
 
 /** CSRFヘッダ(X-CSRF-Token)を必要時だけ自動付与した fetch */
@@ -40,8 +32,6 @@ export async function apiFetch(
     const csrf = getCookie("sg_csrf") ?? "";
     headers.set("X-CSRF-Token", csrf);
   }
-
-  // body があるのに Content-Type が無い場合だけ JSON を付ける
   if (init.body != null && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
