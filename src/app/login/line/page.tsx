@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { API_BASE } from "@/lib/api-client";
 
 export default function LineLogin() {
   useEffect(() => {
-    // ここでLINEのauthorize URLは作らない！
-    // サーバに任せる（next はログイン後に戻したいパス）
+    // 次に戻したいパス（必要なら / などに変更）
     const next = "/mypage";
-    window.location.href = `${API_BASE}/auth/login?next=${encodeURIComponent(next)}`;
+    // ここでは相対パスでOK（next.config.js の rewrites で Render へ中継）
+    window.location.href = `/api/auth/login?next=${encodeURIComponent(next)}`;
   }, []);
 
   return <p>LINEログインにリダイレクト中...</p>;

@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { API_BASE } from "@/lib/api-client";
+import { useRouter } from "next/navigation";
 
-export default function LineLogin() {
+export default function LineCallbackContent() {
+  const router = useRouter();
+
   useEffect(() => {
-    // ここでLINEのauthorize URLは作らない！
-    // サーバに任せる（next はログイン後に戻したいパス）
-    const next = "/mypage";
-    window.location.href = `${API_BASE}/auth/login?next=${encodeURIComponent(next)}`;
-  }, []);
+    // コールバック処理はバックエンドが済ませる想定なので、そのままマイページへ
+    router.replace("/mypage");
+  }, [router]);
 
-  return <p>LINEログインにリダイレクト中...</p>;
+  return (
+    <div className="flex items-center justify-center min-h-screen text-white">
+      <p>ログイン処理中...</p>
+    </div>
+  );
 }
